@@ -1,0 +1,177 @@
+﻿<%@ CodeTemplate Language="C#" TargetLanguage="Text" Debug="False" Src="..\CreateTemplate.cs" Inherits="CR.CodeTemplate.CreateTemplate"%>
+
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Assembly Name="System.Data" %>
+
+<%@ Import Namespace="SchemaExplorer" %>
+<%@ Import Namespace="System.Data" %>
+<%@ Import Namespace="System.Text" %>
+<%@ Import Namespace="System.Text.RegularExpressions" %>
+<%@ Import Namespace="CR.CodeTemplate" %>
+
+<%@ Register Name="OrmliteTemplate" Template="Ormlite.class.cst" %>
+<%@ Property Name="DataNamespace" Type="String" %>
+<script runat="template">
+    private String JavaTypeMap="System-Java.csmap";
+</script>
+<%
+        OrmliteTemplate ormlite = new OrmliteTemplate();
+        GenarateUtil.SetProperty(this,ormlite);
+       
+        
+        
+%>
+
+package <%=DataNamespace %>;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
+
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+
+import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
+import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.table.TableUtils;
+import com.yixin.nfyh.cloud.model.*;
+import com.yixin.nfyh.cloud.utils.ILog;
+import com.yixin.nfyh.cloud.utils.LogUtil;
+
+public class NfyhCloudDataOpenHelp extends OrmLiteSqliteOpenHelper
+{
+	private static String				databaseName	= "nfyh.db";
+	private static String				TAG				= "NfyhCloudDataOpenHelp";
+	private ILog						log				= LogUtil.getLog();
+	private Context						context;
+    
+	<%
+        foreach(var table in DataBase.Tables)
+            {
+                GenarateUtil.SetPropertyTable(ormlite,table);
+                GenarateUtil.ResponseByJavaDir(this,ormlite,DbUtil.GetTableName(table.Name,CutFirstTableName));
+                string pkType=table.HasPrimaryKey?DbUtil.getJavaType(table.PrimaryKey.MemberColumns[0].SystemType,this.JavaTypeMap):"String";
+                this.Response.WriteLine("private Dao<"+DbUtil.GetTableName(table.Name,CutFirstTableName)+", "+pkType+">		"+DbUtil.GetTableName(table.Name,CutFirstTableName)+"Dao;");
+            }
+            %>	
+	
+	public NfyhCloudDataOpenHelp(Context context)
+	{
+		super(context, databaseName, null, 1);
+		this.context = context;
+	}
+	
+	@Override
+	public void onCreate(SQLiteDatabase db, ConnectionSource conn)
+	{
+		try
+		{
+			// 创建表
+			<%
+             foreach(var table in DataBase.Tables)
+            {
+                GenarateUtil.SetPropertyTable(ormlite,table);
+                this.Response.WriteLine("TableUtils.createTable(conn, "+DbUtil.GetTableName(table.Name,CutFirstTableName)+".class);");
+            }
+            %>
+			
+			initData(db);
+		}
+		catch (java.sql.SQLException e)
+		{
+			log.error(TAG, "数据库创建失败！" + e.getMessage());
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 初始化数据
+	 */
+	private void initData(SQLiteDatabase db)
+	{
+		try
+		{
+			InputStream inStream = context.getAssets().open("init.sql");
+			ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+			int len = 0;
+			byte[] buffer = new byte[1024];
+			while ((len = inStream.read(buffer)) != -1)
+			{
+				outStream.write(buffer, 0, len);
+			}
+			
+			String[] sqls = outStream.toString().split(";");
+			
+			for (String sql : sqls)
+			{
+				log.info(TAG, "正在执行sql语句：" + sql);
+				try
+				{
+					if (sql != null && sql.length() > 1) db.execSQL(sql);
+				}
+				catch (Exception e)
+				{
+					log.error(TAG,
+							"执行Sql语句错误：" + sql + ";\r\n" + e.getMessage());
+					continue;
+				}
+			}
+			
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+			log.error(TAG, "初始化数据库数据发生错误：" + e.getMessage());
+		}
+	}
+	
+	@Override
+	public void onUpgrade(SQLiteDatabase db, ConnectionSource conn, int old,
+			int version)
+	{
+		// 删除表
+		
+		try
+		{
+				<%
+                foreach(var table in DataBase.Tables)
+            {
+                GenarateUtil.SetPropertyTable(ormlite,table);
+                this.Response.WriteLine("TableUtils.dropTable(conn, "+DbUtil.GetTableName(table.Name,CutFirstTableName)+".class, false);");
+            }
+                %>		
+		}
+		catch (SQLException e)
+		{
+			log.error(TAG, "删除表失败失败！");
+			e.printStackTrace();
+		}
+	}
+	
+    
+    <%foreach(var table in DataBase.Tables){
+        GenarateUtil.SetPropertyTable(ormlite,table);
+        string pkType=table.HasPrimaryKey?DbUtil.getJavaType(table.PrimaryKey.MemberColumns[0].SystemType,this.JavaTypeMap):"String";
+        String tableName = DbUtil.GetTableName(table.Name,this.CutColumnName);
+    %>
+     /**
+	 * 获取<%=DbUtil.GetComment(table.Description,table.Name) %>
+	 * 
+	 * @return
+	 * @throws SQLException
+	 */
+	public Dao<<%=tableName %>, <%=pkType%>> get<%=tableName %>() throws SQLException
+	{
+		if (this.<%=tableName %>Dao == null)
+		{
+			<%=tableName %>Dao = getDao(<%=tableName %>.class);
+		}
+		
+		return <%=tableName %>Dao;
+	}
+    <% } %>	
+      
+}

@@ -1,0 +1,98 @@
+﻿
+<%@ CodeTemplate Language="C#" Debug="True" TargetLanguage="XML" Src="BaseTemplate.cs" Inherits="CR.CodeSimth.Nhibernate.BaseTemplate"  %>
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Assembly Name="System.Data" %>
+<%@ Import Namespace="SchemaExplorer" %>
+<%@ Import Namespace="System.Text" %>
+<%@ Import Namespace="System.Data" %>
+<%@ Import Namespace="System.Text.RegularExpressions" %>
+<%@ Import  Namespace="CR.CodeSimth.Nhibernate" %>
+<?xml version="1.0" encoding="utf-8" ?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2">
+	<class name="<%=base.TableName %>" <%= ClassTableAtt(Table) %>>
+		<id<%= IdNameAtt(Table) %><%= IdTypeAtt(Table) %><%= IdUnsavedValueAtt(Table) %>>
+		<% foreach(ColumnSchema column in Table.PrimaryKey.MemberColumns) { %>
+			<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+            <%=CheckPrimaryKeyIsIdentity(column)?"<generator class=\"native\" />":"<generator class=\"assigned\" />" %>     
+		<% } %>
+		</id>
+		<% foreach(ColumnSchema column in Table.NonKeyColumns) { %>
+		<property<%= PropertyNameAtt(column) %><%= PropertyTypeAtt(column) %>>
+			<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+		</property>
+		<% } %>
+		<% foreach(TableKeySchema foreignKey in Table.ForeignKeys) { %>
+		<many-to-one<%= ManyToOneNameAtt(foreignKey) %><%= ManyToOneClassAtt(foreignKey) %>>
+			<% foreach(ColumnSchema column in foreignKey.ForeignKeyMemberColumns) { %>
+			<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+			<% } %>
+		</many-to-one>
+		<% if ((foreignKey.ForeignKeyTable == Table) && (foreignKey.PrimaryKeyTable == Table)) { %>
+		<bag<%= CollectionNameAtt(foreignKey)%> inverse="true" lazy="true" cascade="save-update,delete">
+			<key<%= CollectionSelfKeyColumnAtt(foreignKey) %>/>
+			<one-to-many<%= CollectionOneToManyClassAtt(foreignKey)%>/>
+		</bag>
+		<% } %>
+		<% } %>
+		<% foreach(TableKeySchema primaryKey in Table.PrimaryKeys) { %>
+		<% if (IsManyToManyTable(primaryKey.ForeignKeyTable)) { %>
+		<bag<%= CollectionManyToManyNameAtt(primaryKey)%><%= CollectionTableAtt(primaryKey)%> inverse="false" lazy="true" cascade="all-delete-orphan">
+			<key>
+				<% foreach(ColumnSchema column in primaryKey.ForeignKeyMemberColumns) { %>
+				<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+				<% } %>
+			</key>
+			<% foreach(TableKeySchema tableKey in primaryKey.ForeignKeyTable.ForeignKeys) { %>
+			<% if (tableKey.ForeignKeyMemberColumns[0] != primaryKey.ForeignKeyMemberColumns[0]) { %>
+			<many-to-many<%=CollectionManyToManyClassAtt(tableKey)%>>	
+				<% foreach(ColumnSchema column in tableKey.ForeignKeyMemberColumns) { %>
+				<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+				<% } %>
+				<% } %>
+				<% } %>
+			</many-to-many>
+		</bag>
+		<% } else if (IsOneToOneTable(primaryKey)) { %>
+		<one-to-one<%= OneToOneNameAtt(primaryKey) %><%= OneToOneClassAtt(primaryKey) %>>
+			<% foreach(ColumnSchema column in primaryKey.ForeignKeyMemberColumns) { %>
+			<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+			<% } %>
+		</one-to-one>
+		<% } else if (IsSubClassTable(primaryKey)) { %>
+		<joined-subclass<%= JoinedSubclassNameAtt(primaryKey) %><%= JoinedSubclassTableAtt(primaryKey) %>>
+			<key>
+			<% foreach(ColumnSchema column in primaryKey.ForeignKeyTable.PrimaryKey.MemberColumns) { %>
+				<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+			<% } %>
+			</key>
+			<% foreach(ColumnSchema column in primaryKey.ForeignKeyTable.NonKeyColumns) { %>
+			<property<%= PropertyNameAtt(column) %><%= PropertyTypeAtt(column) %>>
+				<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+			</property>
+			<% } %>
+			<% foreach(TableKeySchema foreignKey in primaryKey.ForeignKeyTable.ForeignKeys) { %>
+			<% if (foreignKey.PrimaryKeyTable != Table) { %>
+			<many-to-one<%= ManyToOneNameAtt(foreignKey) %><%= ManyToOneClassAtt(foreignKey) %>>
+				<% foreach(ColumnSchema column in foreignKey.ForeignKeyMemberColumns) { %>
+				<column<%= ColumnNameAtt(column) %><%= ColumnLengthAtt(column) %><%= ColumnSqlTypeAtt(column) %><%= ColumnNotNullAtt(column) %><%= ColumnUniqueAtt(column) %><%= ColumnIndexAtt(Table, column) %>/>
+				<% } %>
+			</many-to-one>
+			<% } %>
+			<% if ((foreignKey.ForeignKeyTable == primaryKey.ForeignKeyTable) && (foreignKey.PrimaryKeyTable == primaryKey.ForeignKeyTable)) { %>
+			<bag<%= CollectionNameAtt(foreignKey)%> inverse="true" lazy="true" cascade="save-update,delete">
+				<key<%= CollectionSelfKeyColumnAtt(foreignKey) %>/>
+				<one-to-many<%= CollectionOneToManyClassAtt(foreignKey)%>/>
+			</bag>
+			<% } %>
+			<% } %>
+		</joined-subclass>
+		<% } else { %>
+		<bag<%= CollectionNameAtt(primaryKey)%> inverse="true" lazy="true" cascade="save-update,delete">
+			<key<%= CollectionSelfKeyColumnAtt(primaryKey) %>/>
+			<one-to-many<%= CollectionOneToManyClassAtt(primaryKey)%>/>
+		</bag>
+		<% } %>
+		<% } %>
+	</class>
+</hibernate-mapping>
+<!-- #include file="NHibernate.inc" -->

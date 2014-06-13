@@ -1,0 +1,201 @@
+﻿<%@ CodeTemplate Language="C#" TargetLanguage="Text" Debug="False" Src="..\CreateTemplate.cs" Inherits="CR.CodeTemplate.CreateTemplate"%>
+
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Assembly Name="System.Data" %>
+
+<%@ Import Namespace="SchemaExplorer" %>
+<%@ Import Namespace="System.Data" %>
+<%@ Import Namespace="System.Text" %>
+<%@ Import Namespace="System.Text.RegularExpressions" %>
+<%@ Import Namespace="CR.CodeTemplate" %>
+package <%=ModelNamespace %>;
+
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.table.DatabaseTable;
+<%if(DbUtil.hasChilrentTable(CurrentTable)) {%>
+import com.j256.ormlite.field.ForeignCollectionField;
+import com.j256.ormlite.dao.ForeignCollection;
+<%}if(DbUtil.hasDateType(CurrentTable)){%>
+import java.util.Date;
+import com.j256.ormlite.field.DataType;
+<%} %>
+
+
+/**
+ * 表：<%=TableName %>
+ * 备注：<%=CurrentTable.Description %>
+ * @author 陈睿
+ * 
+ */
+@DatabaseTable(tableName = "<%=CurrentTable.Name %>")
+public class <%=TableName %>
+{
+    <%--字段，不包括外键 --%>
+    <%foreach(var col in CurrentTable.Columns) {
+        if(col.IsForeignKeyMember) continue; // 跳过外键
+        string colName = DbUtil.GetColumnName(col.Name,CutColumnName);
+        string colType =DbUtil.GetColumnType(col.SystemType);
+        string defaultValue = DbUtil.getDefaultValue(col); //默认值
+        StringBuilder sb = new StringBuilder(); // 生成标志
+       Match match = Regex.Match(defaultValue,@"\w+");
+        defaultValue = match.Success?match.Value:defaultValue;
+        
+        if(DbUtil.isAutoIdentitySqlite(col))              sb.AppendFormat(",generatedId=true"); //主键自动增长
+        else if(DbUtil.isPrimaryKey(col))                sb.AppendFormat(",id=true");
+        if(!col.AllowDBNull)                        sb.AppendFormat(",canBeNull=false");
+        if(!string.IsNullOrEmpty(defaultValue))     sb.AppendFormat(",defaultValue=\"{0}\"",defaultValue);
+        if(DbUtil.isDateType(col)) sb.AppendFormat(",dataType=DataType.DATE_STRING,format=\"yyyy-MM-dd HH:mm:ss\"");
+        sb.AppendFormat(",columnName=\"{0}\"",col.Name);
+        string map = sb.ToString().Substring(1);
+    %>
+    
+    // <%=DbUtil.GetComment(col,CutColumnName) %>
+    @DatabaseField(<%=map %>)
+    private <%=colType %> <%=colName %>;
+    <%} %>
+    
+    <%--父表字段 --%>
+    <%foreach(var col in CurrentTable.ForeignKeys) {
+        TableSchema table = col.PrimaryKeyTable;
+        ColumnSchema currntCol = table.PrimaryKey.MemberColumns[0];
+        string colName = DbUtil.GetColumnName(currntCol.Name,CutColumnName);
+        string colType =DbUtil.GetTableName(table.Name,CutFirstTableName);
+        string comment = DbUtil.GetComment(currntCol,CutColumnName);
+        string defaultValue = DbUtil.getDefaultValue(currntCol); //默认值
+        StringBuilder sb = new StringBuilder(); // 生成标志
+        sb.AppendFormat(",foreign = true");
+        sb.AppendFormat(",foreignColumnName=\"{0}\"",currntCol.Name);
+        string map = sb.ToString().Substring(1);
+    %>
+       
+    // 父表 <%=comment %>
+    @DatabaseField(<%=map %>)
+    private <%=colType %> _<%=colType %>;
+    <%} %>
+    
+     <%--子表字段 --%>
+    <%foreach(var col in CurrentTable.PrimaryKeys) {
+        TableSchema table = col.ForeignKeyTable;
+        ColumnSchema currntCol = table.ForeignKeyColumns[0];
+        string colName = DbUtil.GetColumnName(currntCol.Name,CutColumnName);
+        string colType =DbUtil.GetTableName(table.Name,CutFirstTableName);
+        string comment = DbUtil.GetComment(currntCol,CutColumnName);
+        string defaultValue = DbUtil.getDefaultValue(currntCol); //默认值
+        StringBuilder sb = new StringBuilder(); // 生成标志
+        sb.AppendFormat(",eager = true");
+        sb.AppendFormat(",columnName=\"c_{0}\"",currntCol.Name);
+        string map = sb.ToString().Substring(1);
+    %>
+       
+    // 子表<%=comment %>
+    @ForeignCollectionField(<%=map %>)
+    private ForeignCollection<<%=colType %>> _<%=colType %>List;
+    <%} %>
+    
+    /*
+     * <%=CurrentTable.Description %> 构造函数
+     */
+    public <%=TableName %>()
+    {
+    }
+    
+    <%--方法，不包括外键 --%>
+    <%foreach(var col in CurrentTable.Columns) {
+        if(col.IsForeignKeyMember) continue; // 跳过外键
+        string defaultValue = DbUtil.getDefaultValue(col); //默认值
+        string colName = DbUtil.GetColumnName(col.Name,CutColumnName);
+        string colType =DbUtil.GetColumnType(col.SystemType);
+        StringBuilder sb = new StringBuilder(); // 生成标志
+        
+        if(DbUtil.isAutoIdentitySqlite(col))              sb.AppendFormat(",generatedId=true"); //主键自动增长
+        if(DbUtil.isPrimaryKey(col))                sb.AppendFormat(",id=true");
+        if(!col.AllowDBNull)                        sb.AppendFormat(",canBeNull=false");
+        if(!string.IsNullOrEmpty(defaultValue))     sb.AppendFormat(",defaultValue=\"{0}\"",defaultValue);
+        
+        sb.AppendFormat(",columnName=\"{0}\"",col.Name);
+        string map = sb.ToString().Substring(1);
+    %>
+    
+    /*
+     * 获取 <%=DbUtil.GetComment(col,CutColumnName) %>
+     */
+    public <%=colType %> get<%=colName %>()
+    {
+        return <%=colName %>;
+    }
+    
+    /*
+     * 设置 <%=DbUtil.GetComment(col,CutColumnName) %>
+     */
+    public void set<%=colName%>(<%=colType %> value)
+    {
+        this.<%=colName %> = value;
+    }
+    <%} %>
+    
+     <%--父表方法 --%>
+    <%foreach(var col in CurrentTable.ForeignKeys) {
+        TableSchema table = col.PrimaryKeyTable;
+        ColumnSchema currntCol = table.PrimaryKey.MemberColumns[0];
+        string colName = DbUtil.GetColumnName(currntCol.Name,CutColumnName);
+        string colType =DbUtil.GetTableName(table.Name,CutFirstTableName);
+        string comment = DbUtil.GetComment(currntCol,CutColumnName);
+        string defaultValue = DbUtil.getDefaultValue(currntCol); //默认值
+        StringBuilder sb = new StringBuilder(); // 生成标志
+        sb.AppendFormat(",foreign = true");
+        sb.AppendFormat(",columnName=\"{0}\"",currntCol.Name);
+        string map = sb.ToString().Substring(1);
+    %>
+       
+    /*
+     * 获取 <%=comment %> 的父表
+     */
+    public <%=colType %> get<%=colType %>()
+    {
+        return _<%=colType %>;
+    }
+    
+    /*
+     * 设置 <%=comment %> 的父表
+     */
+    public void set<%=colType %>(<%=colType %> value)
+    {
+        this._<%=colType %> = value;
+    }
+    <%} %>
+    
+	<%--子表方法 --%>
+    <%foreach(var col in CurrentTable.PrimaryKeys) {
+        TableSchema table = col.ForeignKeyTable;
+        ColumnSchema currntCol = table.ForeignKeyColumns[0];
+        string colName = DbUtil.GetColumnName(currntCol.Name,CutColumnName);
+        string colType =DbUtil.GetTableName(table.Name,CutFirstTableName);
+        string comment = DbUtil.GetComment(currntCol,CutColumnName);
+        string defaultValue = DbUtil.getDefaultValue(currntCol); //默认值
+        StringBuilder sb = new StringBuilder(); // 生成标志
+        sb.AppendFormat(",eager = true");
+        sb.AppendFormat(",columnName=\"{0}\"",currntCol.Name);
+        string map = sb.ToString().Substring(1);
+    %>  
+    
+    /*
+     * 获取 <%=comment %> 的子表
+     */
+    public ForeignCollection<<%=colType %>> get<%=colType %>List()
+    {
+        return _<%=colType %>List;
+    }
+    
+    /*
+     * 设置 <%=comment %> 的子表
+     */
+    public void set<%=colType %>List(ForeignCollection<<%=colType %>> value)
+    {
+        this._<%=colType %>List = value;
+    }
+    <%} %>
+}
+<script runat="template">
+
+</script>

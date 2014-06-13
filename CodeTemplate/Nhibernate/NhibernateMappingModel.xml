@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<mapping>
+	<!--
+		说明：
+			表字段：
+					table.name = 表名
+					table.dbname = 数据库中的表名
+					table.comment = 表说明
+			列字段：
+					col.name = 列名
+					col.dbname = 数据库原来的列名
+					col.comment = 列说明
+					col.type = 列对象类型
+					col.dbtype = 列的数据库类型
+					col.length = 列的字段长度
+					
+	-->
+
+	<item name="fields">
+		<![CDATA[
+		private col.type _col.name;
+		]]>
+	</item>
+
+	<item name="propertys">
+		<![CDATA[
+		/// <summary>
+		/// col.comment
+		/// </summary>
+		public virtual col.type col.name
+		{
+			get
+			{
+				return this._col.name;
+			}
+			set
+			{
+				if(value.Length>col.length)
+					throw new ArgumentOutOfRangeException("字段col.name 长度超出限制 col.length长度");
+				this._col.name = value;
+			}
+		}
+		]]>
+	</item>
+
+	<item name="ctor">
+		<![CDATA[
+		,col.type col.name
+		]]>
+	</item>
+	<item name="ctor_body">
+		<![CDATA[
+			this._col.name = col.name;
+		]]>
+	</item>
+
+	<item name="fields_parent">
+		<![CDATA[
+		private fk.name _fk.name;
+		]]>
+	</item>
+
+	<item name="fields_children">
+		<![CDATA[
+		private IList _fk.name;
+		]]>
+	</item>
+
+	<item name="property_parent">
+		<![CDATA[
+		public virtual fk.name fk.name
+		{
+			get { return _fk.name; }
+			set { _fk.name = value; }
+		}
+		]]>
+	</item>
+
+	<item name="proporty_children">
+		<![CDATA[
+		public IList fk.name
+		{
+			get
+			{
+				if (_fk.name==null)
+				{
+					_fk.name = new ArrayList();
+				}
+				return _fk.name;
+			}
+			set { _fk.name = value; }
+		}
+		]]>
+	</item>
+
+</mapping>

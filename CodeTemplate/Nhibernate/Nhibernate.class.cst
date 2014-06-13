@@ -1,0 +1,57 @@
+﻿<%@ CodeTemplate Language="C#" TargetLanguage="C#" Src="BaseTemplate.cs" Inherits="CR.CodeSimth.Nhibernate.BaseTemplate" Namespace="CR.CodeSimth.Nhibernate" ClassName="NhibernateClass" Debug="True" Encoding="utf-8" 
+%>
+
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Assembly Name="System.Data" %>
+
+<%@ Import Namespace="SchemaExplorer" %>
+<%@ Import Namespace="System.Data" %>
+<%@ Import Namespace="System.Text.RegularExpressions" %>
+<%@ Import Namespace="CR.CodeSimth" %>
+<%@ Import Namespace="CR.CodeSimth.Nhibernate" %>
+
+
+using System;
+
+namespace <%=base.ModelNamespace %>
+{
+    public class <%=base.TableName %>
+    {
+    <%=CR.CodeSimth.Nhibernate.BaseTemplate %>
+        #region 字段
+        <%= ForEachColumn("fields", true) %>
+        #endregion
+        
+        #region 父表字段
+        <%=base.ForEachPerentColumn("fields_parent") %>
+        #endregion
+        
+        #region 子表字段
+        <%=base.ForEachChildrenColumn("fields_children") %>
+        #endregion
+        
+        #region 属性
+        <%= ForEachColumn("propertys", true) %>
+        #endregion
+        
+         #region 父表属性
+        <%=base.ForEachPerentColumn("property_parent") %>
+        #endregion
+        
+        #region 子表属性
+        <%=base.ForEachChildrenColumn("proporty_children") %>
+        #endregion
+        
+        
+        #region 构造函数
+        public <%=base.TableName %>(){}
+        
+        public <%=base.TableName%> (<%=ForEachColumn("ctor",true,false).Replace("\r\n",string.Empty).Replace("\t",string.Empty).Substring(1) %>)
+        {
+            <%=ForEachColumn("ctor_body",true,false) %>
+        }
+        #endregion
+        
+        
+    }
+}

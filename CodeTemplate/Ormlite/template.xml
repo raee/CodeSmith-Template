@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<mapping>
+	<!--
+		说明：
+			表字段：
+					table.name = 表名
+					table.dbname = 数据库中的表名
+					table.comment = 表说明
+			列字段：
+					col.name = 列名
+					col.dbname = 数据库原来的列名
+					col.comment = 列说明
+					col.type = 列对象类型
+					col.dbtype = 列的数据库类型
+					col.length = 列的字段长度
+					col.isidentity = 是否为自动增长列
+					col.enableNull = 是否为允许为空
+					col.isPrimarykey = 是否为主键列
+					col.default = 字段默认值
+					
+	-->
+	<item name="flieds">
+		<![CDATA[
+		@DatabaseField(
+						id = col.isPrimarykey，
+						generatedId = col.isidentity，
+						canBeNull = col.enableNull，
+						columnName = "col.dbname",
+						
+						)
+		private col.type col.name;
+		]]>
+	</item>
+	<item name="getMethod">
+		<![CDATA[
+		/**
+		 * 获取col.comment
+		 */
+		public col.type getcol.name(){
+			return col.name;
+		}
+		]]>
+	</item>
+	<item name="setMethod">
+		<![CDATA[
+		/**
+		 * 设置col.comment
+		 */
+		public void setcol.name(col.type value){
+			return col.name = value;
+		}
+		]]>
+	</item>
+
+</mapping>
